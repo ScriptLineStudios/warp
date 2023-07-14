@@ -1,4 +1,6 @@
 import socket
+import threading
+import time
 
 from warp import node
 from warp import packet
@@ -29,13 +31,23 @@ class Server:
         }
 
     def send(self, data, addr):
-        self.socket.sendto(packet.Packet.pack_int(self.connections[addr]["o"]) + data, addr)
+        self.socket.sendto(
+            packet.Packet.pack_int(self.connections[addr]["o"]) + data, addr
+        )
         self.connections[addr]["o"] += 1
 
     def receive(self):
         data, addr = self.socket.recvfrom(20480)
-        if self.connections.get(addr):  # If we have already registered the connection, we must demand an id.
+        if self.connections.get(
+            addr
+        ):  # If we have already registered the connection, we must demand an id.
+            is_reliable = chr(data[0])                
+            data = data[1:]
+
             _id, data = packet.Packet.read_int(data)
+            if is_reliable == "R": # If the packet is reliable we must immediately let the client know we received it.
+                print("Packet is reliable, telling the client we received it.")
+                self.send(bytes(packet.Packet(self, "reliable", {"id": _id})), addr)            
             if self.connections[addr]["i"] <= _id:
                 self.connections[addr]["i"] = _id + 1
             else:
@@ -51,8 +63,12 @@ class Server:
 
         return inner
 
-    def listen(self):
+    def listen_forever(self):
         while True:
             data, addr = self.receive()
             header, data = packet.Packet.read_string(data)
             self.handlers[header](self, data, addr)
+
+    def listen(self):
+        listen_thread = threading.Thread(target=self.listen_forever)
+        listen_thread.start()
