@@ -41,13 +41,19 @@ class Server:
         if self.connections.get(
             addr
         ):  # If we have already registered the connection, we must demand an id.
-            is_reliable = chr(data[0])                
+            is_reliable = chr(data[0])
             data = data[1:]
 
             _id, data = packet.Packet.read_int(data)
-            if is_reliable == "R": # If the packet is reliable we must immediately let the client know we received it.
-                print("Packet is reliable, telling the client we received it.")
-                self.send(bytes(packet.Packet(self, "reliable", {"id": _id})), addr)            
+
+            if (
+                is_reliable == "R"
+            ):  # If the packet is reliable we must immediately let the client know we received it.
+                print(
+                    f"Packet is reliable, telling the client we received it. _id = {_id}"
+                )
+                self.send(bytes(packet.Packet(self, "reliable", {"id": _id})), addr)
+
             if self.connections[addr]["i"] <= _id:
                 self.connections[addr]["i"] = _id + 1
             else:
