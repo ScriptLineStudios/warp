@@ -33,8 +33,8 @@ class Client:
             print("resending...")
             self.socket.sendto(b"R" + packet.Packet.pack_int(self.o) + data, self.addr)
             self.reliable_packet_register[self.o] = False
-            # self.reliable(data)
-            threading.Thread(target=self.reliable, args=(data, )).start()
+            self.reliable(data)
+            # threading.Thread(target=self.reliable, args=(data, )).start()
 
     def send(self, data, reliable=False):
         if not reliable:
