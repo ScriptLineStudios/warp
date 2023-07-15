@@ -29,10 +29,12 @@ class Client:
             _id = payload["id"]
             self.reliable_packet_register[_id] = True
             print(f"Received reliable response: {_id}")
-        except _queue.Empty:
+        except queue.Empty:
+            print("resending...")
             self.socket.sendto(b"R" + packet.Packet.pack_int(self.o) + data, self.addr)
             self.reliable_packet_register[self.o] = False
-            reliable()
+            # self.reliable(data)
+            threading.Thread(target=self.reliable, args=(data, )).start()
 
     def send(self, data, reliable=False):
         if not reliable:
@@ -41,7 +43,8 @@ class Client:
             print(f"Sending reliable message: {self.o}")
             self.socket.sendto(b"R" + packet.Packet.pack_int(self.o) + data, self.addr)
             self.reliable_packet_register[self.o] = False
-            self.reliable(data)
+            # self.reliable(data)
+            threading.Thread(target=self.reliable, args=(data, )).start()
 
 
         self.o += 1

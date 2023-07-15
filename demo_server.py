@@ -3,7 +3,7 @@ from warp import packet
 import threading
 
 sock_server = server.Server("127.0.0.1", 5555)
-number = 80000
+number = 300000
 
 received_packets = 0
 
