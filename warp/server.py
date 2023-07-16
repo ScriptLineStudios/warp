@@ -6,26 +6,20 @@ from warp import node
 from warp import packet
 
 
-class Server:
+class Server(node.Node):
     def __init__(self, ip, port):
-        self.ip = ip
-        self.port = port
-        self.addr = (self.ip, self.port)
-
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        super().__init__(ip, port)
         self.socket.bind(self.addr)
+
+        self.connections = {}
 
         self.handlers = {
             "connection": Server.connection,
         }
 
-        self.connections = {}
-
     def connection(self, data, addr):
         print(f"[SERVER]: Connecting {addr}")
-        self.connections[
-            addr
-        ] = {  # From this point onward, all received packets from this address will require an id
+        self.connections[addr] = {  
             "i": 0,
             "o": 0,
         }
@@ -37,22 +31,12 @@ class Server:
         self.connections[addr]["o"] += 1
 
     def receive(self):
-        data, addr = self.socket.recvfrom(20480)
-        if self.connections.get(
-            addr
-        ):  # If we have already registered the connection, we must demand an id.
-            is_reliable = chr(data[0])
+        data, addr = self.socket.recvfrom(2048)
+        if self.connections.get(addr):  
+            acked = chr(data[0])
             data = data[1:]
 
             _id, data = packet.Packet.read_int(data)
-
-            if (
-                is_reliable == "R"
-            ):  # If the packet is reliable we must immediately let the client know we received it.
-                print(
-                    f"Packet is reliable, telling the client we received it. _id = {_id}"
-                )
-                self.send(bytes(packet.Packet(self, "reliable", {"id": _id})), addr)
 
             if self.connections[addr]["i"] <= _id:
                 self.connections[addr]["i"] = _id + 1
